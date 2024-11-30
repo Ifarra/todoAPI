@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .deleted { background-color: #E5E7EB; color: #9CA3AF !important; }
+        .finished { text-decoration: line-through; color: green; }
+        .disabled-button {
+            background-color: #D1D5DB; 
+            color: #9CA3AF; 
+            cursor: not-allowed; 
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto p-6">
+        <h1 class="text-3xl font-bold mb-2">Todo List</h1>
+        <p class="text-xl font-semibold mb-4 text-gray-500">go to port 8000 to see the api, the documentation for the api is in "/docs" (recommended) and "/redoc"</p>
+        <div class="mb-4 flex items-center">
+            <input type="checkbox" id="show-deleted" class="mr-2" />
+            <label for="show-deleted" class="text-sm">Show Deleted Todos</label>
+        </div>
+        <button id="add-todo-button" class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 mb-4">Add Todo</button>
+        <div id="todos" class="space-y-4"></div>
+    </div>
+    
+    <script>
+        const todosDiv = document.getElementById('todos');
+        const showDeletedCheckbox = document.getElementById('show-deleted');
+
+        document.getElementById('add-todo-button').addEventListener('click', async () => {
+            const todoData = {
+                title: "New Todo",
+                description: "Description for new todo"
+            };
+
+            await fetch('/todos', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(todoData)
+            });
+            await loadTodos();
+        });
+
+        showDeletedCheckbox.addEventListener('change', async () => {
+            await loadTodos();
+        });
+
+        async function loadTodos() {
+            const response = await fetch('/todos');
+            const todos = await response.json();
+            todosDiv.innerHTML = '';
+            todos.forEach(todo => {
+                if (!todo.deleted_at || showDeletedCheckbox.checked) {
+                    const todoItem = document.createElement('div');
+                    todoItem.className = 'todo-item rounded shadow p-4 flex justify-between items-center';
+
+                    if (todo.deleted_at) {
+                        todoItem.classList.add('deleted');
+                    }
+
+                    todoItem.innerHTML = `
+                        <div class="flex-grow">
+                            <div class="todo-content ${todo.deleted_at ? 'deleted' : ''} ${todo.finished_at ? 'finished' : ''}">
+                                <strong class="text-lg">${todo.title}</strong>
+                                <span class="text-sm text-gray-500">${todo.deleted_at ? '(Deleted)' : ''} ${todo.finished_at ? '(Finished)' : ''}</span>
+                                <p>${todo.description}</p>
+                            </div>
+                            <div class="edit-form hidden">
+                                <input type="text" value="${todo.title}" class="border rounded p-1 w-full" ${todo.deleted_at ? 'disabled' : ''} />
+                                <textarea class="border rounded p-1 w-full mt-2" ${todo.deleted_at ? 'disabled' : ''}>${todo.description}</textarea>
+                            </div>
+                        </div>
+                        <div>
+                            <button onclick="editTodo(${todo.id}, this)" class="bg-yellow-500 text-white py-1 px-3 rounded hover:bg-yellow-600 disabled:bg-gray-400" ${todo.deleted_at ? 'disabled' : ''}>Edit</button>
+                            <button onclick="deleteTodo(${todo.id})" class="bg-red-500 text-white py-1 px-3 rounded hover:bg-red-600 disabled:bg-gray-400" ${todo.deleted_at ? 'disabled' : ''}>Delete</button>
+                            <button onclick="finishTodo(${todo.id})" class="bg-green-500 text-white py-1 px-3 rounded hover:bg-green-600 disabled:bg-gray-400" ${todo.deleted_at ? 'disabled' : ''}>Finish</button>
+                        </div>
+                    `;
+
+                    todosDiv.appendChild(todoItem);
+                }
+            });
+        }
+
+        async function editTodo(id, button) {
+            const todoItem = button.closest('.todo-item');
+            const editForm = todoItem.querySelector('.edit-form');
+            const todoContent = todoItem.querySelector('.todo-content');
+
+            if (editForm.classList.contains('hidden')) {
+                // Show edit form and hide content
+                editForm.classList.remove('hidden');
+                todoContent.classList.add('hidden');
+                button.textContent = 'Save';
+            } else {
+                // Save changes
+                const inputs = editForm.querySelectorAll('input, textarea');
+                const updatedData = {
+                    title: inputs[0].value,
+                    description: inputs[1].value
+                };
+
+                await fetch(`/todos/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(updatedData)
+                });
+
+                editForm.classList.add('hidden');
+                todoContent.classList.remove('hidden');
+                button.textContent = 'Edit';
+                await loadTodos();
+            }
+        }
+
+        async function deleteTodo(id) {
+            await fetch(`/todos/${id}`, { method: 'DELETE' });
+            await loadTodos();
+        }
+
+        async function finishTodo(id) {
+            await fetch(`/todos/${id}/finish`, { method: 'PATCH' });
+            await loadTodos();
+        }
+
+        // Load todos on page load
+        window.onload = loadTodos;
+    </script>
+</body>
+</html>
