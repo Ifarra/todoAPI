@@ -22,6 +22,9 @@ class Notes(BaseModel):
 
 storage: List[Notes] = [] 
 
+def getDate():
+    return datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+
 @app.get("/")
 def read_root():
     return {"Intro": "Hello, to test the API please go to /docs (recomended) or /redoc 😀"}
@@ -36,7 +39,7 @@ def read_root():
 
 @app.post("/todo")
 def create_todo():
-    storage.append(Notes(id=len(storage)+1, created_at=str(datetime.datetime.now())))
+    storage.append(Notes(id=len(storage)+1, created_at=getDate()))
 
 @app.get("/todo")
 def get_all_todo():
@@ -56,7 +59,7 @@ def update_todo(id:int, item: ItemNotes):
     try:
         for index, stored_item in enumerate(storage):
             if stored_item.id == id:
-                storage[index] = Notes(title=item.title, description=item.description, id=stored_item.id, finished_at=stored_item.finished_at, created_at=stored_item.created_at, updated_at=str(datetime.datetime.now()), deleted_at=stored_item.deleted_at)
+                storage[index] = Notes(title=item.title, description=item.description, id=stored_item.id, finished_at=stored_item.finished_at, created_at=stored_item.created_at, updated_at=getDate(), deleted_at=stored_item.deleted_at)
                 return {"item_title": item.title, "item_id": id}
                 
         return {"message": "Item not found"}
@@ -68,7 +71,7 @@ def delete_todo(id: int):
     try:
         for index, stored_item in enumerate(storage):
             if stored_item.id == id:
-                storage[index] = Notes(id=stored_item.id, description=stored_item.description, title=stored_item.title, finished_at=stored_item.finished_at, created_at=stored_item.created_at, updated_at=stored_item.created_at, deleted_at=str(datetime.datetime.now()))
+                storage[index] = Notes(id=stored_item.id, description=stored_item.description, title=stored_item.title, finished_at=stored_item.finished_at, created_at=stored_item.created_at, updated_at=stored_item.created_at, deleted_at=getDate())
                 return {"message": "Item deleted successfully"}
     except IndexError:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -78,7 +81,7 @@ def finish_todo(id: int):
     try:
         for index, stored_item in enumerate(storage):
             if stored_item.id == id:
-                storage[index] = Notes(id=stored_item.id, description=stored_item.description, title=stored_item.title, finished_at=str(datetime.datetime.now()), created_at=stored_item.created_at, updated_at=stored_item.created_at, deleted_at=stored_item.deleted_at)
+                storage[index] = Notes(id=stored_item.id, description=stored_item.description, title=stored_item.title, finished_at=getDate(), created_at=stored_item.created_at, updated_at=stored_item.created_at, deleted_at=stored_item.deleted_at)
                 return {"message": "Item finished successfully"}
     except IndexError:
         raise HTTPException(status_code=404, detail="Item not found")
