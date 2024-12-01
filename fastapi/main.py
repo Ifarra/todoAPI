@@ -39,7 +39,11 @@ def read_root():
 
 @app.post("/todo")
 def create_todo():
-    storage.append(Notes(id=len(storage)+1, created_at=getDate()))
+    try:
+        storage.append(Notes(id=len(storage)+1, created_at=getDate()))
+        return {"message": "Item created successfully", "item_id": len(storage)}
+    except:
+        raise HTTPException(status_code=500, detail="Internal server error")    
 
 @app.get("/todo")
 def get_all_todo():
@@ -60,7 +64,7 @@ def update_todo(id:int, item: ItemNotes):
         for index, stored_item in enumerate(storage):
             if stored_item.id == id:
                 storage[index] = Notes(title=item.title, description=item.description, id=stored_item.id, finished_at=stored_item.finished_at, created_at=stored_item.created_at, updated_at=getDate(), deleted_at=stored_item.deleted_at)
-                return {"item_title": item.title, "item_id": id}
+                return {"message": "Item updated successfully", "item_id": id}
                 
         return {"message": "Item not found"}
     except IndexError:
@@ -72,7 +76,7 @@ def delete_todo(id: int):
         for index, stored_item in enumerate(storage):
             if stored_item.id == id:
                 storage[index] = Notes(id=stored_item.id, description=stored_item.description, title=stored_item.title, finished_at=stored_item.finished_at, created_at=stored_item.created_at, updated_at=stored_item.created_at, deleted_at=getDate())
-                return {"message": "Item deleted successfully"}
+                return {"message": "Item deleted successfully", "item_id": id}
     except IndexError:
         raise HTTPException(status_code=404, detail="Item not found")
 
@@ -82,6 +86,6 @@ def finish_todo(id: int):
         for index, stored_item in enumerate(storage):
             if stored_item.id == id:
                 storage[index] = Notes(id=stored_item.id, description=stored_item.description, title=stored_item.title, finished_at=getDate(), created_at=stored_item.created_at, updated_at=stored_item.created_at, deleted_at=stored_item.deleted_at)
-                return {"message": "Item finished successfully"}
+                return {"message": "Item finished successfully", "item_id": id}
     except IndexError:
         raise HTTPException(status_code=404, detail="Item not found")
